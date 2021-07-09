@@ -51,7 +51,7 @@ def train(**kwargs):
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
 
-    device=t.device('cuda') if opt.gpu else t.device('cpu')
+    device = t.device('cuda') if opt.gpu else t.device('cpu')
     if opt.vis:
         from visualize import Visualizer
         vis = Visualizer(opt.env)
@@ -82,10 +82,11 @@ def train(**kwargs):
     netd.to(device)
     netg.to(device)
 
-
     # 定义优化器和损失
-    optimizer_g = t.optim.Adam(netg.parameters(), opt.lr1, betas=(opt.beta1, 0.999))
-    optimizer_d = t.optim.Adam(netd.parameters(), opt.lr2, betas=(opt.beta1, 0.999))
+    optimizer_g = t.optim.Adam(
+        netg.parameters(), opt.lr1, betas=(opt.beta1, 0.999))
+    optimizer_d = t.optim.Adam(
+        netd.parameters(), opt.lr2, betas=(opt.beta1, 0.999))
     criterion = t.nn.BCELoss().to(device)
 
     # 真图片label为1，假图片label为0
@@ -140,8 +141,10 @@ def train(**kwargs):
                 if os.path.exists(opt.debug_file):
                     ipdb.set_trace()
                 fix_fake_imgs = netg(fix_noises)
-                vis.images(fix_fake_imgs.detach().cpu().numpy()[:64] * 0.5 + 0.5, win='fixfake')
-                vis.images(real_img.data.cpu().numpy()[:64] * 0.5 + 0.5, win='real')
+                vis.images(fix_fake_imgs.detach().cpu().numpy()[
+                           :64] * 0.5 + 0.5, win='fixfake')
+                vis.images(real_img.data.cpu().numpy()[
+                           :64] * 0.5 + 0.5, win='real')
                 vis.plot('errord', errord_meter.value()[0])
                 vis.plot('errorg', errorg_meter.value()[0])
 
@@ -162,11 +165,12 @@ def generate(**kwargs):
     """
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
-    
-    device=t.device('cuda') if opt.gpu else t.device('cpu')
+
+    device = t.device('cuda') if opt.gpu else t.device('cpu')
 
     netg, netd = NetG(opt).eval(), NetD(opt).eval()
-    noises = t.randn(opt.gen_search_num, opt.nz, 1, 1).normal_(opt.gen_mean, opt.gen_std)
+    noises = t.randn(opt.gen_search_num, opt.nz, 1,
+                     1).normal_(opt.gen_mean, opt.gen_std)
     noises = noises.to(device)
 
     map_location = lambda storage, loc: storage
@@ -174,7 +178,6 @@ def generate(**kwargs):
     netg.load_state_dict(t.load(opt.netg_path, map_location=map_location))
     netd.to(device)
     netg.to(device)
-
 
     # 生成图片，并计算图片在判别器的分数
     fake_img = netg(noises)
@@ -186,7 +189,8 @@ def generate(**kwargs):
     for ii in indexs:
         result.append(fake_img.data[ii])
     # 保存图片
-    tv.utils.save_image(t.stack(result), opt.gen_img, normalize=True, range=(-1, 1))
+    tv.utils.save_image(t.stack(result), opt.gen_img,
+                        normalize=True, range=(-1, 1))
 
 
 if __name__ == '__main__':
