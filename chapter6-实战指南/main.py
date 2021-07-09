@@ -29,7 +29,7 @@ def test(**kwargs):
         score = model(input)
         probability = t.nn.functional.softmax(score,dim=1)[:,0].detach().tolist()
         # label = score.max(dim = 1)[1].detach().tolist()
-        
+
         batch_results = [(path_.item(),probability_) for path_,probability_ in zip(path,probability) ]
 
         results += batch_results
@@ -43,7 +43,7 @@ def write_csv(results,file_name):
         writer = csv.writer(f)
         writer.writerow(['id','label'])
         writer.writerows(results)
-    
+
 def train(**kwargs):
     opt._parse(kwargs)
     vis = Visualizer(opt.env,port = opt.vis_port)
@@ -61,12 +61,12 @@ def train(**kwargs):
                         shuffle=True,num_workers=opt.num_workers)
     val_dataloader = DataLoader(val_data,opt.batch_size,
                         shuffle=False,num_workers=opt.num_workers)
-    
+
     # step3: criterion and optimizer
     criterion = t.nn.CrossEntropyLoss()
     lr = opt.lr
     optimizer = model.get_optimizer(lr, opt.weight_decay)
-        
+
     # step4: meters
     loss_meter = meter.AverageValueMeter()
     confusion_matrix = meter.ConfusionMeter(2)
@@ -74,13 +74,13 @@ def train(**kwargs):
 
     # train
     for epoch in range(opt.max_epoch):
-        
+
         loss_meter.reset()
         confusion_matrix.reset()
 
         for ii,(data,label) in tqdm(enumerate(train_dataloader)):
 
-            # train model 
+            # train model
             input = data.to(opt.device)
             target = label.to(opt.device)
 
@@ -90,16 +90,16 @@ def train(**kwargs):
             loss = criterion(score,target)
             loss.backward()
             optimizer.step()
-            
-            
+
+
             # meters update and visualize
             loss_meter.add(loss.item())
             # detach 一下更安全保险
-            confusion_matrix.add(score.detach(), target.detach()) 
+            confusion_matrix.add(score.detach(), target.detach())
 
             if (ii + 1)%opt.print_freq == 0:
                 vis.plot('loss', loss_meter.value()[0])
-                
+
                 # 进入debug模式
                 if os.path.exists(opt.debug_file):
                     import ipdb;
@@ -114,14 +114,14 @@ def train(**kwargs):
         vis.plot('val_accuracy',val_accuracy)
         vis.log("epoch:{epoch},lr:{lr},loss:{loss},train_cm:{train_cm},val_cm:{val_cm}".format(
                     epoch = epoch,loss = loss_meter.value()[0],val_cm = str(val_cm.value()),train_cm=str(confusion_matrix.value()),lr=lr))
-        
+
         # update learning rate
-        if loss_meter.value()[0] > previous_loss:          
+        if loss_meter.value()[0] > previous_loss:
             lr = lr * opt.lr_decay
             # 第二种降低学习率的方法:不会有moment等信息的丢失
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr
-        
+
 
         previous_loss = loss_meter.value()[0]
 
@@ -146,11 +146,11 @@ def help():
     """
     打印帮助的信息： python file.py help
     """
-    
+
     print("""
     usage : python file.py <function> [--args=value]
     <function> := train | test | help
-    example: 
+    example:
             python {0} train --env='env0701' --lr=0.01
             python {0} test --dataset='path/to/dataset/root/'
             python {0} help
