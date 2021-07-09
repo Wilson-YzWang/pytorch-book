@@ -51,7 +51,7 @@ def train(**kwargs):
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
 
-    device = t.device('cuda') if opt.gpu else t.device('cpu')
+    device=t.device('cuda') if opt.gpu else t.device('cpu')
     if opt.vis:
         from visualize import Visualizer
         vis = Visualizer(opt.env)
@@ -74,7 +74,7 @@ def train(**kwargs):
 
     # 网络
     netg, netd = NetG(opt), NetD(opt)
-    def map_location(storage, loc): return storage
+    map_location = lambda storage, loc: storage
     if opt.netd_path:
         netd.load_state_dict(t.load(opt.netd_path, map_location=map_location))
     if opt.netg_path:
@@ -82,11 +82,10 @@ def train(**kwargs):
     netd.to(device)
     netg.to(device)
 
+
     # 定义优化器和损失
-    optimizer_g = t.optim.Adam(
-        netg.parameters(), opt.lr1, betas=(opt.beta1, 0.999))
-    optimizer_d = t.optim.Adam(
-        netd.parameters(), opt.lr2, betas=(opt.beta1, 0.999))
+    optimizer_g = t.optim.Adam(netg.parameters(), opt.lr1, betas=(opt.beta1, 0.999))
+    optimizer_d = t.optim.Adam(netd.parameters(), opt.lr2, betas=(opt.beta1, 0.999))
     criterion = t.nn.BCELoss().to(device)
 
     # 真图片label为1，假图片label为0
@@ -99,6 +98,7 @@ def train(**kwargs):
     errord_meter = AverageValueMeter()
     errorg_meter = AverageValueMeter()
 
+
     epochs = range(opt.max_epoch)
     for epoch in iter(epochs):
         for ii, (img, _) in tqdm.tqdm(enumerate(dataloader)):
@@ -107,12 +107,12 @@ def train(**kwargs):
             if ii % opt.d_every == 0:
                 # 训练判别器
                 optimizer_d.zero_grad()
-                # 尽可能的把真图片判别为正确
+                ## 尽可能的把真图片判别为正确
                 output = netd(real_img)
                 error_d_real = criterion(output, true_labels)
                 error_d_real.backward()
 
-                # 尽可能把假图片判别为错误
+                ## 尽可能把假图片判别为错误
                 noises.data.copy_(t.randn(opt.batch_size, opt.nz, 1, 1))
                 fake_img = netg(noises).detach()  # 根据噪声生成假图
                 output = netd(fake_img)
@@ -136,14 +136,12 @@ def train(**kwargs):
                 errorg_meter.add(error_g.item())
 
             if opt.vis and ii % opt.plot_every == opt.plot_every - 1:
-                # 可视化
+                ## 可视化
                 if os.path.exists(opt.debug_file):
                     ipdb.set_trace()
                 fix_fake_imgs = netg(fix_noises)
-                vis.images(fix_fake_imgs.detach().cpu().numpy()
-                           [:64] * 0.5 + 0.5, win='fixfake')
-                vis.images(real_img.data.cpu().numpy()[
-                           :64] * 0.5 + 0.5, win='real')
+                vis.images(fix_fake_imgs.detach().cpu().numpy()[:64] * 0.5 + 0.5, win='fixfake')
+                vis.images(real_img.data.cpu().numpy()[:64] * 0.5 + 0.5, win='real')
                 vis.plot('errord', errord_meter.value()[0])
                 vis.plot('errorg', errorg_meter.value()[0])
 
@@ -164,19 +162,19 @@ def generate(**kwargs):
     """
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
-
-    device = t.device('cuda') if opt.gpu else t.device('cpu')
+    
+    device=t.device('cuda') if opt.gpu else t.device('cpu')
 
     netg, netd = NetG(opt).eval(), NetD(opt).eval()
-    noises = t.randn(opt.gen_search_num, opt.nz, 1,
-                     1).normal_(opt.gen_mean, opt.gen_std)
+    noises = t.randn(opt.gen_search_num, opt.nz, 1, 1).normal_(opt.gen_mean, opt.gen_std)
     noises = noises.to(device)
 
-    def map_location(storage, loc): return storage
+    map_location = lambda storage, loc: storage
     netd.load_state_dict(t.load(opt.netd_path, map_location=map_location))
     netg.load_state_dict(t.load(opt.netg_path, map_location=map_location))
     netd.to(device)
     netg.to(device)
+
 
     # 生成图片，并计算图片在判别器的分数
     fake_img = netg(noises)
@@ -188,8 +186,7 @@ def generate(**kwargs):
     for ii in indexs:
         result.append(fake_img.data[ii])
     # 保存图片
-    tv.utils.save_image(t.stack(result), opt.gen_img,
-                        normalize=True, range=(-1, 1))
+    tv.utils.save_image(t.stack(result), opt.gen_img, normalize=True, range=(-1, 1))
 
 
 if __name__ == '__main__':
